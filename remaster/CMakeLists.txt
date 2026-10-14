@@ -9,7 +9,13 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(RAYLIB REQUIRED IMPORTED_TARGET raylib)
-pkg_check_modules(UNICORN REQUIRED IMPORTED_TARGET unicorn)
+if(WIN32)
+  # MSYS2's unicorn.pc points at /ucrt64/include, which native CMake cannot resolve;
+  # the library and headers are in the toolchain's default paths anyway.
+  find_library(UNICORN_LIB NAMES unicorn REQUIRED)
+else()
+  pkg_check_modules(UNICORN REQUIRED IMPORTED_TARGET unicorn)
+endif()
 
 add_executable(livingstone
   src/main.cpp
@@ -24,7 +30,7 @@ add_executable(livingstone
 option(APP_BUNDLE "Release build: the .app (static raylib and unicorn) or the Windows zip" OFF)
 if(APP_BUNDLE AND WIN32)
   # MSYS2/MinGW: raylib and unicorn DLLs are shipped next to the .exe (see .github/workflows)
-  target_link_libraries(livingstone PRIVATE PkgConfig::RAYLIB PkgConfig::UNICORN -static-libgcc -static-libstdc++)
+  target_link_libraries(livingstone PRIVATE PkgConfig::RAYLIB ${UNICORN_LIB} -static-libgcc -static-libstdc++)
   set_target_properties(livingstone PROPERTIES WIN32_EXECUTABLE ON)  # no console window
   target_compile_definitions(livingstone PRIVATE APP_BUNDLE=1)
 elseif(APP_BUNDLE)
