@@ -34,10 +34,12 @@ if(APP_BUNDLE AND WIN32)
   set_target_properties(livingstone PROPERTIES WIN32_EXECUTABLE ON)  # no console window
   target_compile_definitions(livingstone PRIVATE APP_BUNDLE=1)
 elseif(APP_BUNDLE AND NOT APPLE)
-  # Linux: raylib static (its pkg-config static flags bring GL/X11), libunicorn.so shipped
-  # next to the binary and found through the $ORIGIN rpath (see .github/workflows)
+  # Linux: raylib static (its raylib.pc lists no system libs: GL/X11 are added here),
+  # libunicorn.so shipped next to the binary and found through the $ORIGIN rpath
+  # (see .github/workflows)
   target_include_directories(livingstone PRIVATE ${RAYLIB_INCLUDE_DIRS})
-  target_link_libraries(livingstone PRIVATE ${RAYLIB_STATIC_LDFLAGS} PkgConfig::UNICORN -static-libgcc -static-libstdc++)
+  target_link_libraries(livingstone PRIVATE ${RAYLIB_STATIC_LDFLAGS} GL X11 m pthread dl rt
+    PkgConfig::UNICORN -static-libgcc -static-libstdc++)
   set_target_properties(livingstone PROPERTIES BUILD_RPATH "\$ORIGIN")
   target_compile_definitions(livingstone PRIVATE APP_BUNDLE=1)
 elseif(APP_BUNDLE)
