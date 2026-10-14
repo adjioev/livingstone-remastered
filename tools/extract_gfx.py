@@ -11,15 +11,40 @@ Image address = address in the game segment (LSTONE.COM: file offset + 0x100).
           CGA 2bpp pixels (4 px/byte, colour 0 = transparent); ends at 0xdd99.
           Object slots point at a record via field +0x26 (blitter 0x3ae6).
 """
-import os, struct, sys
+import os, sys
 from PIL import Image, ImageDraw
 
 COM = sys.argv[1] if len(sys.argv) > 1 else 'original/LSTONE.COM'
 OUT = sys.argv[2] if len(sys.argv) > 2 else 're'
-_data = open(COM, 'rb').read()
-# Image address = offset in the game segment. LSTONE.COM is a plain COM (address = file
-# offset + 0x100); the 1991 Kiev LIVINGST.COM had a 256-byte loader in front (offset - 0x100).
-img = _data[0x100:] if _data[:3] == b'\xe9\xac\x00' else bytes(0x100) + _data
+
+
+class _Image:
+    """The game image, read on first use: importing this module for its constants (as
+    gen_rooms.py --logo does) works without a copy of the game.
+    Image address = offset in the game segment. LSTONE.COM is a plain COM (address = file
+    offset + 0x100); the 1991 Kiev LIVINGST.COM had a 256-byte loader in front (offset - 0x100)."""
+    _data = None
+
+    def _load(self):
+        if self._data is None:
+            if not os.path.exists(COM):
+                sys.exit(f'{COM} not found: copy your LSTONE.COM to original/ (needed by this tool)')
+            raw = open(COM, 'rb').read()
+            self._data = raw[0x100:] if raw[:3] == b'\xe9\xac\x00' else bytes(0x100) + raw
+        return self._data
+
+    def __getitem__(self, i):
+        return self._load()[i]
+
+    def __len__(self):
+        return len(self._load())
+
+
+img = _Image()
+
+
+def word(a):
+    return img[a] | img[a + 1] << 8
 
 TILES_A, TILES_B = 0x59ac, 0x69ac
 ROOM_TABLE, ROOM_DATA, BLOCKS = 0x7c89, 0x3fc0, 0x702c
@@ -59,10 +84,10 @@ def tilesheet(base, count, pal, name):
 def room_map(room):
     """Return the 40x20 tile map the game builds at 0xe04c (routine 0x3505)."""
     m = [0] * (MAP_W * MAP_H)
-    p = ROOM_DATA + struct.unpack_from('<H', img, ROOM_TABLE + room * 2)[0]
+    p = ROOM_DATA + word(ROOM_TABLE + room * 2)
     n = img[p]; p += 1
     for _ in range(n):
-        col, row, off = img[p], img[p + 1], struct.unpack_from('<H', img, p + 2)[0]
+        col, row, off = img[p], img[p + 1], word(p + 2)
         p += 4
         b = BLOCKS + off
         w, h = img[b], img[b + 1]

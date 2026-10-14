@@ -39,6 +39,8 @@ EDITIONS = {
 LOGO_TEXT, LOGO_SUBTITLE, LOGO_CREDIT = EDITIONS['release']
 LOGO_HEIGHT_WITH_SUBTITLE = 236  # px
 LOGO_FONT = '/System/Library/Fonts/Supplemental/Impact.ttf'
+# Title room without the logo (tracked, unlike raw/): make_app.sh draws each edition's logo on it.
+TITLE_BG = os.path.join(ASSETS, 'title', 'room_3d_bg.png')
 LOGO_PIXEL = 4  # drawn at 1/4 size without anti-aliasing, then scaled up: pixel-art look
 PARALLEL = 6  # rooms generated at once
 # Gemini picks a different "pixel size" per picture (caves came out almost smooth), so every
@@ -580,7 +582,7 @@ def finish(room):
         elif kind == 'swamp' and room in rooms:
             out = paint_swamp(out, room)
     if room == TITLE_ROOM:
-        out.save(os.path.join(ASSETS, 'raw', 'room_3d_bg.png'))
+        out.save(TITLE_BG)
         out = logo(out)
     path = os.path.join(ASSETS, 'rooms', f'room_{room:02x}.png')
     out.save(path)
@@ -608,7 +610,7 @@ def main():
         edition = args[args.index('--edition') + 1] if '--edition' in args else 'release'
         LOGO_TEXT, LOGO_SUBTITLE, LOGO_CREDIT = EDITIONS[edition]
         out = args[args.index('--out') + 1] if '--out' in args else os.path.join(ASSETS, 'rooms', f'room_{TITLE_ROOM:02x}.png')
-        logo(Image.open(os.path.join(ASSETS, 'raw', 'room_3d_bg.png'))).save(out)
+        logo(Image.open(TITLE_BG)).save(out)
         print(f'title logo ({edition}) -> {out}')
         return
     guides_only = '--guides-only' in args

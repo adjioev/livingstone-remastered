@@ -43,9 +43,12 @@ cp "$ROOT/remaster/build-app/livingstone" "$APP/Contents/MacOS/$EXE"
 for d in rooms sprites anim props shaders glow fonts; do
     cp -R "$ROOT/remaster/assets/$d" "$APP/Contents/Resources/assets/"
 done
-# title screen for this edition (the logo is drawn into the title room's background)
-"$PY" "$ROOT/tools/gen_rooms.py" --logo --edition "$EDITION" \
-    --out "$APP/Contents/Resources/assets/rooms/room_3d.png" >/dev/null
+# title screen for other editions (their logo is drawn into the title room's background);
+# the release title is already in assets/rooms
+if [[ $EDITION != release ]]; then
+    "$PY" "$ROOT/tools/gen_rooms.py" --logo --edition "$EDITION" \
+        --out "$APP/Contents/Resources/assets/rooms/room_3d.png" >/dev/null
+fi
 [[ $WITH_GAME == 1 ]] && cp "$ROOT/original/LSTONE.COM" "$APP/Contents/Resources/"
 
 ICONSET="$(mktemp -d)/AppIcon.iconset"
