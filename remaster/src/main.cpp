@@ -197,10 +197,12 @@ int main(int argc, char** argv) {
         }
         argc = 1;
     }
-    // Inside the .app the assets live in Contents/Resources; otherwise use the source tree.
-    // The game itself is the user's own copy (not shipped): a path argument, an embedded
-    // copy (family builds), Application Support, or next to the .app / binary.
+    // Inside the .app the assets live in Contents/Resources, in the Windows zip next to the
+    // .exe; otherwise use the source tree. The game itself is the user's own copy (not
+    // shipped): a path argument, an embedded copy (family builds), the user data folder,
+    // or next to the .app / binary.
     std::string res = std::string(GetApplicationDirectory()) + "../Resources/";
+    if (!DirectoryExists((res + "assets").c_str())) res = GetApplicationDirectory();
     bool bundled = DirectoryExists((res + "assets").c_str());
     std::string assets = argc > 2 ? argv[2] : bundled ? res + "assets" : PROJECT_ROOT "/assets";
     std::string data_dir = user_data_dir(APP_NAME);

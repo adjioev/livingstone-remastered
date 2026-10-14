@@ -69,8 +69,13 @@ std::string sha1_hex(const std::vector<uint8_t>& data) {
 }
 
 std::string user_data_dir(const std::string& app) {
+#ifdef _WIN32
+    const char* base = std::getenv("APPDATA");  // %APPDATA%\<app>
+    std::string dir = std::string(base ? base : ".") + "/" + app + "/";
+#else
     const char* home = std::getenv("HOME");
     std::string dir = std::string(home ? home : ".") + "/Library/Application Support/" + app + "/";
+#endif
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);
     return dir;

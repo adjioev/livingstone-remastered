@@ -1,0 +1,73 @@
+# Windows build: MSYS2 (UCRT64) with raylib and unicorn from pacman. Every push to main
+# (or a ci/* branch) leaves a zip as a workflow artifact; a v* tag also attaches it to a GitHub release.
+name: windows
+
+on:
+  push:
+    branches: [main, 'ci/**']
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            zip
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-raylib
+            mingw-w64-ucrt-x86_64-unicorn
+
+      - name: Build
+        run: |
+          cmake -S remaster -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAPP_BUNDLE=ON
+          cmake --build build
+
+      - name: Package
+        run: |
+          OUT="Livingstone Remastered"
+          mkdir -p "$OUT/assets"
+          cp build/livingstone.exe "$OUT/Livingstone.exe"
+          for d in rooms sprites anim props shaders glow; do cp -r "remaster/assets/$d" "$OUT/assets/"; done
+          # the DLLs the exe needs from the MSYS2 tree (raylib, unicorn, glfw, ...)
+          ldd build/livingstone.exe | awk '/\/ucrt64\// {print $3}' | sort -u | xargs -r -I{} cp {} "$OUT/"
+          cp LICENSE README.md "$OUT/"
+          cat > "$OUT/HOW TO PLAY.txt" <<'EOF'
+          Livingstone Remastered
+
+          1. Run Livingstone.exe.
+          2. Drag your copy of LSTONE.COM (the original DOS game, not included) onto the window.
+             It is remembered, so this is needed only once.
+
+          Keys: arrows to move, Space to fire, 1-4 to pick a weapon, Esc to pause,
+          R original/remastered graphics, F full screen. More in README.md.
+
+          Source and license (GPL-2.0): https://github.com/${{ github.repository }}
+          EOF
+          ls -la "$OUT"
+          zip -qr LivingstoneRemastered-windows.zip "$OUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LivingstoneRemastered-windows
+          path: LivingstoneRemastered-windows.zip
+
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: LivingstoneRemastered-windows.zip

@@ -21,8 +21,13 @@ add_executable(livingstone
   src/audio.cpp
   src/gamepad.cpp
   src/gamefile.cpp)
-option(APP_BUNDLE "Self-contained build for the .app: static raylib and unicorn" OFF)
-if(APP_BUNDLE)
+option(APP_BUNDLE "Release build: the .app (static raylib and unicorn) or the Windows zip" OFF)
+if(APP_BUNDLE AND WIN32)
+  # MSYS2/MinGW: raylib and unicorn DLLs are shipped next to the .exe (see .github/workflows)
+  target_link_libraries(livingstone PRIVATE PkgConfig::RAYLIB PkgConfig::UNICORN -static-libgcc -static-libstdc++)
+  set_target_properties(livingstone PROPERTIES WIN32_EXECUTABLE ON)  # no console window
+  target_compile_definitions(livingstone PRIVATE APP_BUNDLE=1)
+elseif(APP_BUNDLE)
   find_library(RAYLIB_STATIC NAMES libraylib.a PATHS ${RAYLIB_LIBRARY_DIRS} REQUIRED NO_DEFAULT_PATH)
   find_library(UNICORN_STATIC NAMES libunicorn.a PATHS ${UNICORN_LIBRARY_DIRS} REQUIRED NO_DEFAULT_PATH)
   target_include_directories(livingstone PRIVATE ${RAYLIB_INCLUDE_DIRS} ${UNICORN_INCLUDE_DIRS})
