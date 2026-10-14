@@ -1,0 +1,17 @@
+.env
+**/.env
+remaster/build/
+__pycache__/
+dist/
+remaster/build-app/
+.venv/
+
+# original game files: never committed (users supply their own copy)
+original/*.COM
+original/*.com
+
+# kept local only: reverse-engineering output, raw Gemini images, layout guides
+re/
+remaster/assets/raw/
+remaster/assets/guides/
+.DS_Store
