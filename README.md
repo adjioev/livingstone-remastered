@@ -12,6 +12,17 @@ on first start, or put it at `original/LSTONE.COM` when running from source.
 *Livingstone Supongo* is © Opera Soft. This project is a fan work and is not affiliated
 with the rights holders.
 
+## Download
+
+Windows and Linux builds are on the [Releases](../../releases/latest) page:
+
+- **Windows**: unzip `LivingstoneRemastered-windows.zip` and run `Livingstone.exe`. The exe is
+  not signed, so SmartScreen may warn about an unknown publisher: *More info → Run anyway*.
+- **Linux** (x86-64, X11 or XWayland): unpack `LivingstoneRemastered-linux-x86_64.tar.gz` and run
+  `./livingstone`.
+
+Then drag your `LSTONE.COM` onto the window; it is remembered for the next start.
+
 ## Build (macOS)
 
 ```sh
