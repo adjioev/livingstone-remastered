@@ -1,0 +1,146 @@
+# Windows and Linux builds. Every push to main (or a ci/* branch) leaves the archives as
+# workflow artifacts; a v* tag also attaches them to a GitHub release.
+#   Windows: MSYS2 (UCRT64) with raylib and unicorn from pacman, their DLLs next to the exe.
+#   Linux:   raylib (static) and unicorn (shared, shipped next to the binary) built from source
+#            on the oldest supported Ubuntu, so the binary runs on older glibc too.
+name: build
+
+on:
+  push:
+    branches: [main, 'ci/**']
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ASSET_DIRS: rooms sprites anim props shaders glow fonts
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            zip
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-raylib
+            mingw-w64-ucrt-x86_64-unicorn
+
+      - name: Build
+        run: |
+          cmake -S remaster -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAPP_BUNDLE=ON
+          cmake --build build
+
+      - name: Package
+        run: |
+          OUT="Livingstone Remastered"
+          mkdir -p "$OUT/assets"
+          cp build/livingstone.exe "$OUT/Livingstone.exe"
+          for d in $ASSET_DIRS; do cp -r "remaster/assets/$d" "$OUT/assets/"; done
+          # the DLLs the exe needs from the MSYS2 tree (raylib, unicorn, glfw, ...)
+          ldd build/livingstone.exe | awk '/\/ucrt64\// {print $3}' | sort -u | xargs -r -I{} cp {} "$OUT/"
+          cp LICENSE README.md "$OUT/"
+          cat > "$OUT/HOW TO PLAY.txt" <<'EOF'
+          Livingstone Remastered
+
+          1. Run Livingstone.exe.
+          2. Drag your copy of LSTONE.COM (the original DOS game, not included) onto the window.
+             It is remembered, so this is needed only once.
+
+          Keys: arrows to move, Space to fire, 1-4 to pick a weapon, Esc to pause,
+          R original/remastered graphics, F full screen. More in README.md.
+
+          Source and license (GPL-2.0): https://github.com/${{ github.repository }}
+          EOF
+          ls -la "$OUT"
+          zip -qr LivingstoneRemastered-windows.zip "$OUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LivingstoneRemastered-windows
+          path: LivingstoneRemastered-windows.zip
+
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: LivingstoneRemastered-windows.zip
+
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config \
+            libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+            libasound2-dev libpulse-dev
+
+      - name: raylib (static)
+        run: |
+          git clone --depth 1 --branch 6.0 https://github.com/raysan5/raylib.git /tmp/raylib
+          cmake -S /tmp/raylib -B /tmp/raylib/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF -DBUILD_EXAMPLES=OFF -DPLATFORM=Desktop -DGLFW_BUILD_WAYLAND=OFF
+          sudo cmake --build /tmp/raylib/build --target install
+
+      - name: unicorn (x86 only)
+        run: |
+          git clone --depth 1 --branch 2.1.4 https://github.com/unicorn-engine/unicorn.git /tmp/unicorn
+          cmake -S /tmp/unicorn -B /tmp/unicorn/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DUNICORN_ARCH=x86 -DUNICORN_BUILD_TESTS=OFF
+          sudo cmake --build /tmp/unicorn/build --target install
+          sudo ldconfig
+
+      - name: Build
+        run: |
+          cmake -S remaster -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAPP_BUNDLE=ON
+          cmake --build build
+
+      - name: Package
+        run: |
+          OUT="Livingstone Remastered"
+          mkdir -p "$OUT/assets"
+          cp build/livingstone "$OUT/livingstone"
+          for d in $ASSET_DIRS; do cp -r "remaster/assets/$d" "$OUT/assets/"; done
+          cp -L "$(ldd build/livingstone | awk '/libunicorn/ {print $3}')" "$OUT/"
+          ldd "$OUT/livingstone"
+          cp LICENSE README.md "$OUT/"
+          cat > "$OUT/HOW TO PLAY.txt" <<'EOF'
+          Livingstone Remastered
+
+          1. Run ./livingstone (from a terminal, or double-click it in your file manager).
+          2. Drag your copy of LSTONE.COM (the original DOS game, not included) onto the window,
+             or put it next to the livingstone file. A dropped copy is remembered
+             (~/.local/share), so this is needed only once.
+
+          Keys: arrows to move, Space to fire, 1-4 to pick a weapon, Esc to pause,
+          R original/remastered graphics, F full screen. More in README.md.
+
+          Source and license (GPL-2.0): https://github.com/${{ github.repository }}
+          EOF
+          ls -la "$OUT"
+          tar czf LivingstoneRemastered-linux-x86_64.tar.gz "$OUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LivingstoneRemastered-linux
+          path: LivingstoneRemastered-linux-x86_64.tar.gz
+
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: LivingstoneRemastered-linux-x86_64.tar.gz

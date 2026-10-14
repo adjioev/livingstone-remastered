@@ -72,9 +72,14 @@ std::string user_data_dir(const std::string& app) {
 #ifdef _WIN32
     const char* base = std::getenv("APPDATA");  // %APPDATA%\<app>
     std::string dir = std::string(base ? base : ".") + "/" + app + "/";
-#else
+#elif defined(__APPLE__)
     const char* home = std::getenv("HOME");
     std::string dir = std::string(home ? home : ".") + "/Library/Application Support/" + app + "/";
+#else
+    const char* xdg = std::getenv("XDG_DATA_HOME");  // ~/.local/share/<app>
+    const char* home = std::getenv("HOME");
+    std::string dir = xdg && *xdg ? std::string(xdg) + "/" + app + "/"
+                                  : std::string(home ? home : ".") + "/.local/share/" + app + "/";
 #endif
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);

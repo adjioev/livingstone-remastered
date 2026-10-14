@@ -40,7 +40,7 @@ cmake --build "$ROOT/remaster/build-app" -j
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/assets"
 cp "$ROOT/remaster/build-app/livingstone" "$APP/Contents/MacOS/$EXE"
-for d in rooms sprites anim props shaders glow; do
+for d in rooms sprites anim props shaders glow fonts; do
     cp -R "$ROOT/remaster/assets/$d" "$APP/Contents/Resources/assets/"
 done
 # title screen for this edition (the logo is drawn into the title room's background)

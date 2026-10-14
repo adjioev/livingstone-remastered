@@ -9,8 +9,7 @@ namespace {
 constexpr float TRANSITION_SECONDS = 0.45f;
 constexpr int HUD_Y = FIELD_H, HUD_H = 200 - FIELD_H;  // CGA rows 160..199
 constexpr int HUD_SCALE = 3;
-const char* const HUD_FONTS[] = {"/System/Library/Fonts/Supplemental/Impact.ttf",  // macOS
-                                 "C:/Windows/Fonts/impact.ttf"};                    // Windows
+constexpr const char* HUD_FONT = "/fonts/Anton-Regular.ttf";  // in assets: same look on every OS
 constexpr uint16_t LIFE_ICON = 0x8e69;  // hero standing
 // Sprites replaced by an HD cycle from assets/anim/<name>_<i>.png.
 struct AnimDef {
@@ -87,10 +86,7 @@ Renderer::Renderer(const GameData& data, const std::string& assets_dir) : data_(
         log_tex_ = LoadTexture((assets_ + "/props/log.png").c_str());
         SetTextureFilter(log_tex_, TEXTURE_FILTER_BILINEAR);
     }
-    std::string font = HUD_FONTS[0];
-    for (const char* f : HUD_FONTS)
-        if (FileExists(f)) font = f;
-    hud_ = std::make_unique<Hud>(font);
+    hud_ = std::make_unique<Hud>(assets_ + HUD_FONT);
 
     opaque_ = LoadShaderFromMemory(nullptr,
         "#version 330\nin vec2 fragTexCoord; in vec4 fragColor; out vec4 finalColor;\n"
