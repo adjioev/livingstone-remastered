@@ -381,7 +381,7 @@ it stays exactly the same (same framing, no zoom, no shift). No characters, no t
 CLEAR_PROMPT = """Image 1 is a close-up crop of a 2D jungle platform game background. Inside the bright magenta
 rectangle there is an object the background must not have. Repaint that area as the same surroundings
 continued naturally (the same rock ledge / ground and the same cave or sky behind), with no object: no gold,
-no coin, no glow, no treasure. Crisp pixel art, exactly the same pixel size and colour style as around it.
+no coin, no glow, no treasure, no skull, no bones. Crisp pixel art, exactly the same pixel size and colour style as around it.
 
 Rules: change ONLY the inside of the magenta rectangle and remove the magenta outline; everything outside
 it stays exactly the same (same framing, no zoom, no shift). No characters, no text."""
@@ -395,19 +395,15 @@ Rules: change ONLY the insides of the magenta rectangles and remove the magenta 
 stays exactly the same (same framing, no zoom, no shift). No characters, no text."""
 PLATE_TILES = {192, 193}
 
-WELL_PROMPT = """Image 1 is a close-up crop of a dark cave in a 2D platform game. Inside the bright magenta
-rectangle, standing on the floor, paint an old stone WELL that the player has to jump over: a low round
-wall of large pale grey-blue stones with lighter capstones on top and a dark opening inside, clearly lit
-so it stands out against the dark cave behind it (light rim highlights, a soft shadow at its base). It fills
-the rectangle exactly: its top edge is the top of the rectangle, its base sits on the floor.
-Crisp pixel art, exactly the same pixel size and colour style as the surroundings.
-
-Rules: change ONLY the inside of the magenta rectangle and remove the magenta outline; everything else
-stays exactly the same (same framing, no zoom, no shift). No characters, no text."""
-WELL_TILES = {245, 246, 247}  # the well's rim; the row under it is its stone wall
+SKULL_PROMPT = """Draw ONE small old SKULL as a game prop lying on the ground, seen from the side: pale bone
+white with warm shading, big dark eye sockets, a nose hole and a row of teeth, the jaw resting on the ground,
+a bit wider than tall. Crisp pixel art in the same style as the sprites in image 1 (but draw only the skull).
+Flat pure magenta #FF00FF background everywhere, no ground, no shadow, no bones around it, no text."""
+SKULL_TILES = {234, 235}  # small skull lying on the floor (white in caves, yellow outdoors)
 
 # Cells (col, row) where the model painted something that must not be in the background.
-CLEAR_CELLS = {0x09: [(28, 14), (29, 14), (30, 14), (31, 14), (28, 15), (29, 15), (30, 15), (31, 15)]}
+CLEAR_CELLS = {0x09: [(28, 14), (29, 14), (30, 14), (31, 14), (28, 15), (29, 15), (30, 15), (31, 15)],
+               0x34: [(c, r) for c in range(7) for r in range(9, 13)]}  # a giant skull (--patch skull redraws it)
 NEST_TILES = {134, 135, 136}  # woven twigs in a ledge: where the gold lies
 
 # Local repaints on aligned backgrounds: kind -> (prompt, rooms). The patch file
@@ -418,7 +414,7 @@ PATCHES = {
     'trap': (TRAP_PROMPT, (0x05, 0x06, 0x11, 0x15, 0x17)),
     'clear': (CLEAR_PROMPT, tuple(CLEAR_CELLS)),
     'plate': (PLATE_PROMPT, (0x1d, 0x1e, 0x1f, 0x20)),
-    'well': (WELL_PROMPT, (0x34,)),
+    'skull': (SKULL_PROMPT, (0x34,)),  # a keyed prop on its cells, over the 'clear' repaint
     'ledge': (LEDGE_PROMPT, (0x39,)),  # clears the spikes the model drew where the nest goes
     'nest': (NEST_PROMPT, (0x39,)),   # a keyed prop placed on the ledge, not a repaint
 }
@@ -433,9 +429,8 @@ def patch_cells(room, kind):
         return cells + [(c, r + 1) for c, r in cells if r + 1 < gfx.MAP_H]
     if kind == 'clear':
         return CLEAR_CELLS[room]
-    if kind == 'well':
-        rim = [(i % gfx.MAP_W, i // gfx.MAP_W) for i, t in enumerate(tiles) if t in WELL_TILES]
-        return rim + [(c, r + 1) for c, r in rim]
+    if kind == 'skull':
+        return [(i % gfx.MAP_W, i // gfx.MAP_W) for i, t in enumerate(tiles) if t in SKULL_TILES]
     if kind == 'plate':
         return [(i % gfx.MAP_W, i // gfx.MAP_W) for i, t in enumerate(tiles) if t in PLATE_TILES]
     if kind in ('nest', 'ledge'):  # the nest row plus the rows above it (the model drew spikes there)
@@ -505,42 +500,49 @@ def base_image(room):
     return pixelize(raw.resize((W, H + PAD), Image.LANCZOS).crop((0, PAD, W, H + PAD)))
 
 
-def nest_prop(room):
-    """Nest drawn on magenta by the model, keyed and placed on the ledge over its cells."""
+# Keyed props: kind -> (tiles they stand on, width in tile widths, max height in cells,
+# keep aspect when the height is capped). The nest is wider than its cells to hide the
+# spikes the model drew there, and squashed flat.
+PROPS = {'nest': (NEST_TILES, 1.3, 1.6, False), 'skull': (SKULL_TILES, 1.0, 1.1, True)}
+
+
+def key_prop(room, kind):
+    """Prop drawn on magenta by the model, keyed and placed over its cells."""
     sys.path.insert(0, os.path.join(ROOT, 'tools'))
     import gen_sprites as gs
     import gen_bank as gb
     ref = Image.open(os.path.join(ASSETS, 'raw', 'hero_sheet.png'))  # a sprite sheet: draws a sprite, not a scene
-    raw = gemini.generate(NEST_PROMPT, [ref], aspect='1:1', label=f'nest {room:02x}')
-    raw.save(os.path.join(ASSETS, 'raw', f'room_{room:02x}_nest_raw.png'))
+    raw = gemini.generate(PATCHES[kind][0], [ref], aspect='1:1', label=f'{kind} {room:02x}')
+    raw.save(os.path.join(ASSETS, 'raw', f'room_{room:02x}_{kind}_raw.png'))
     fig = gb.largest_blob(gs.key_out(raw))
     fig = fig.crop(fig.getbbox())
-    fig.save(os.path.join(ASSETS, 'raw', f'room_{room:02x}_nest.png'))
+    fig.save(os.path.join(ASSETS, 'raw', f'room_{room:02x}_{kind}.png'))
     finish(room)
 
 
-def place_nest(base, nest, room):
+def place_prop(base, fig, room, kind):
+    tiles_on, width, max_h, keep_aspect = PROPS[kind]
     cell = W // gfx.MAP_W
     tiles, _ = gfx.room_map(room)
-    cells = [(i % gfx.MAP_W, i // gfx.MAP_W) for i, t in enumerate(tiles) if t in NEST_TILES]
+    cells = [(i % gfx.MAP_W, i // gfx.MAP_W) for i, t in enumerate(tiles) if t in tiles_on]
     x0 = min(c for c, _ in cells) * cell
     x1 = (max(c for c, _ in cells) + 1) * cell
-    ledge = min(r for _, r in cells) * cell          # top of the ledge row
-    # Low and wide, rim a bit above the ledge top so the gold (drawn by the game on the
-    # ledge) sits in it; wide enough to hide the cleared spikes.
-    w = round((x1 - x0) * 1.3)
-    h = min(round(nest.height * w / nest.width), round(cell * 1.6))
-    nest = nest.resize((w, h), Image.LANCZOS)
+    top = min(r for _, r in cells) * cell
+    w = round((x1 - x0) * width)
+    h = min(round(fig.height * w / fig.width), round(cell * max_h))
+    if keep_aspect:
+        w = round(fig.width * h / fig.height)
+    fig = fig.resize((w, h), Image.LANCZOS)
     out = base.convert('RGBA')
-    out.alpha_composite(nest, ((x0 + x1 - w) // 2, ledge + cell - h))  # bottom on the walking line
+    out.alpha_composite(fig, ((x0 + x1 - w) // 2, top + cell - h))  # bottom on the walking line
     return pixelize(out.convert('RGB'))
 
 
 def inpaint(room, kind):
-    if kind == 'nest':
-        return nest_prop(room)
+    if kind in PROPS:
+        return key_prop(room, kind)
     prompt, _ = PATCHES[kind]
-    base = base_image(room)
+    base = patched(room, until=kind)
     cx0, cy0, cx1, cy1 = patch_crop(room, kind)
     x0, y0, x1, y1 = patch_box(room, kind)
     crop = base.crop((cx0, cy0, cx1, cy1))
@@ -570,17 +572,26 @@ def inpaint(room, kind):
     finish(room)
 
 
-def finish(room):
-    """raw Gemini output -> crop to the playfield -> pixelize (-> logo) -> rooms/."""
+def patched(room, until=None):
+    """Aligned background with the room's patches applied, in PATCHES order (up to, not
+    including, `until`)."""
     out = base_image(room)
     for kind, (_, rooms) in PATCHES.items():
+        if kind == until:
+            break
         patch = os.path.join(ASSETS, 'raw', f'room_{room:02x}_{kind}.png')
-        if room in rooms and os.path.exists(patch) and kind == 'nest':
-            out = place_nest(out, Image.open(patch).convert('RGBA'), room)
+        if room in rooms and os.path.exists(patch) and kind in PROPS:
+            out = place_prop(out, Image.open(patch).convert('RGBA'), room, kind)
         elif room in rooms and os.path.exists(patch):  # local repaint from --patch
             out = apply_patch(out, Image.open(patch).convert('RGB'), room, kind)
         elif kind == 'swamp' and room in rooms:
             out = paint_swamp(out, room)
+    return out
+
+
+def finish(room):
+    """raw Gemini output -> crop to the playfield -> pixelize (-> logo) -> rooms/."""
+    out = patched(room)
     if room == TITLE_ROOM:
         out.save(TITLE_BG)
         out = logo(out)
