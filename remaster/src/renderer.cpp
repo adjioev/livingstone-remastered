@@ -11,6 +11,7 @@ constexpr int HUD_Y = FIELD_H, HUD_H = 200 - FIELD_H;  // CGA rows 160..199
 constexpr int HUD_SCALE = 3;
 constexpr const char* HUD_FONT = "/fonts/Anton-Regular.ttf";  // in assets: same look on every OS
 constexpr uint16_t LIFE_ICON = 0x8e69;  // hero standing
+constexpr int TITLE_ROOM = 0x3d;
 // Sprites replaced by an HD cycle from assets/anim/<name>_<i>.png.
 struct AnimDef {
     const char* name;
@@ -265,6 +266,19 @@ void Renderer::frame(const uint8_t* ram, const uint8_t* vram, const std::vector<
                               "   (K to change)" + (layout_name == "WASD" ? "   ENTER: next weapon" : "");
             centred(ctl.c_str(), 144, 26, 0.7f);
         }
+    }
+    if (room_ == TITLE_ROOM && !paused && !transitioning()) {
+        // The original never said how to start (that was in the manual).
+        auto centred = [](const char* t, int y, int size, Color c) {
+            DrawText(t, (CANVAS_W - MeasureText(t, size)) / 2, y, size, c);
+        };
+        const char* start = gamepad ? "PRESS  A  TO START" : "PRESS  SPACE  TO START";
+        const char* more = "ESC menu    R original graphics    F full screen    TAB demo";
+        float pulse = 0.6f + 0.4f * std::sin(time_ * 4.0f);
+        float y = 345.0f;  // under the title plaque, in the sky: the hero walks below
+        DrawRectangleRounded({CANVAS_W / 2.0f - 450, y, 900, 124}, 0.3f, 8, Fade(BLACK, 0.6f));  // clear of the drummers
+        centred(start, int(y) + 14, 56, Fade({255, 214, 96, 255}, pulse));
+        centred(more, int(y) + 82, 26, Fade(RAYWHITE, 0.8f));
     }
     if (time_ < toast_until_ && !paused) {
         float a = std::min(1.0f, (toast_until_ - time_) / 0.4f);

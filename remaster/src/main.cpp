@@ -291,6 +291,7 @@ int main(int argc, char** argv) {
         bool paused = false;
         int layout = 1;  // QAOP, as before
         uint8_t weapon_tap = 0;  // weapon key held briefly for Enter-cycles-weapon
+        bool enter_is_space = false;  // Enter went down on the title screen: it is Space until released
         double weapon_tap_until = 0;
         auto cycle_weapon = [&](int dir = 1) {
             if (weapon_tap) return;
@@ -361,7 +362,17 @@ int main(int argc, char** argv) {
                 renderer.layout_name = LAYOUTS[layout].name;
                 renderer.toast(std::string("CONTROLS: ARROWS") + (layout ? std::string(" + ") + LAYOUTS[layout].name : ""));
             }
-            if (LAYOUTS[layout].enter_cycles_weapon && IsKeyPressed(KEY_ENTER)) cycle_weapon();
+            // On the title screen Enter starts the game like Space (people press Enter).
+            const bool on_title = GameData::room(machine->ram()) == 0x3d;
+            if (on_title && IsKeyPressed(KEY_ENTER)) {
+                enter_is_space = true;
+                keys.set(SC_SPACE, true);
+            }
+            if (enter_is_space && IsKeyReleased(KEY_ENTER)) {
+                enter_is_space = false;
+                keys.set(SC_SPACE, false);
+            }
+            if (!on_title && LAYOUTS[layout].enter_cycles_weapon && IsKeyPressed(KEY_ENTER)) cycle_weapon();
             if (weapon_tap && game_t >= weapon_tap_until) {
                 keys.set(weapon_tap, false);
                 weapon_tap = 0;
@@ -380,6 +391,7 @@ int main(int argc, char** argv) {
             if (pad.pressed(Pad::SELECT)) toggle_view();
             for (const auto* set : {&COMMON_KEYS, &LAYOUTS[layout].keys})
                 for (auto [key, sc] : *set) {
+                    if (key == KEY_ENTER && (enter_is_space || (on_title && IsKeyPressed(key)))) continue;
                     if (IsKeyPressed(key)) keys.set(sc, true);
                     if (IsKeyReleased(key)) keys.set(sc, false);
                 }
