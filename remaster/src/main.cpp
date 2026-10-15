@@ -421,7 +421,8 @@ int main(int argc, char** argv) {
             }
             if (IsKeyPressed(KEY_F11)) renderer.bright = !renderer.bright;
 
-            float dt = GetFrameTime();
+            // Test runs use a fixed step: saving frames must not speed up animations.
+            float dt = test_dir.empty() ? GetFrameTime() : 1.0f / 60;
             bool quit = false;
             for (; next_event < script.size() && script[next_event].t <= game_t; next_event++) {
                 const ScriptEvent& e = script[next_event];

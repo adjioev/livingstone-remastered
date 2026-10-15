@@ -48,13 +48,16 @@ private:
     void draw_hud();
     void update_vram_texture(const uint8_t* vram, int palette);
     void start_transition();
+    void draw_hd(const uint8_t* ram, float dt);  // remastered field + HUD into the current target
+    void draw_flip();                            // R: the picture dissolves into big pixels and back
+    void draw_blocky(const Texture2D& tex, Rectangle src, Rectangle dst, float block, float alpha);
     void load_walk_cycle();
     const Texture2D* hero_override(const ObjectView& o);
     const Texture2D* sprite_texture(uint16_t addr) const;  // HD if present, else original
 
     const GameData& data_;
     std::string assets_;
-    RenderTexture2D canvas_{}, field_{}, prev_field_{};
+    RenderTexture2D canvas_{}, field_{}, prev_field_{}, hd_canvas_{}, blocks_{};
     Texture2D tiles_[2]{};
     std::unordered_map<uint16_t, Texture2D> sprites_[2];
     std::unordered_map<int, Texture2D> hd_rooms_;
@@ -111,6 +114,9 @@ private:
     int room_ = -1;
     int last_player_x_ = 160, last_player_y_ = 80;
     float transition_ = 1.0f;  // 0..1, 1 = idle
+    // R flip: 0..1, 1 = idle.
+    float flip_ = 1.0f;
+    bool shown_classic_ = false, flip_to_classic_ = false;
     int dir_x_ = 0, dir_y_ = 0;
     float time_ = 0.0f;
     std::string toast_;

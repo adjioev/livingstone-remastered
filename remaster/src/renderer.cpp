@@ -7,6 +7,10 @@
 namespace {
 
 constexpr float TRANSITION_SECONDS = 0.45f;
+constexpr float FLIP_SECONDS = 1.0f;   // R: the whole dissolve
+constexpr float FLIP_MAX_BLOCK = 48;   // px at the middle of it: one original 8x8 tile
+// The original view: the CGA screen at 4:3, pillarboxed.
+constexpr Rectangle CLASSIC_RECT{240, 0, 1440, 1080};
 constexpr int HUD_Y = FIELD_H, HUD_H = 200 - FIELD_H;  // CGA rows 160..199
 constexpr int HUD_SCALE = 3;
 constexpr const char* HUD_FONT = "/fonts/Anton-Regular.ttf";  // in assets: same look on every OS
@@ -55,6 +59,9 @@ Renderer::Renderer(const GameData& data, const std::string& assets_dir) : data_(
     canvas_ = LoadRenderTexture(CANVAS_W, CANVAS_H);
     field_ = LoadRenderTexture(CANVAS_W, FIELD_PX_H);
     prev_field_ = LoadRenderTexture(CANVAS_W, FIELD_PX_H);
+    hd_canvas_ = LoadRenderTexture(CANVAS_W, CANVAS_H);
+    blocks_ = LoadRenderTexture(CANVAS_W, CANVAS_H);  // the picture shrunk to one texel per block
+    SetTextureFilter(blocks_.texture, TEXTURE_FILTER_POINT);
     SetTextureFilter(canvas_.texture, TEXTURE_FILTER_BILINEAR);
 
     std::vector<Rgba> blank(320 * 200);
@@ -104,6 +111,8 @@ Renderer::~Renderer() {
     UnloadRenderTexture(canvas_);
     UnloadRenderTexture(field_);
     UnloadRenderTexture(prev_field_);
+    UnloadRenderTexture(hd_canvas_);
+    UnloadRenderTexture(blocks_);
     UnloadTexture(vram_tex_);
     for (auto& t : tiles_) UnloadTexture(t);
     for (auto& set : sprites_)
@@ -196,40 +205,28 @@ void Renderer::frame(const uint8_t* ram, const uint8_t* vram, const std::vector<
     // While sliding, the emulation is paused, so the new room is drawn once and held.
     draw_field(ram, objects, field_);
 
+    if (classic != shown_classic_) {  // R pressed: dissolve into the other view
+        shown_classic_ = flip_to_classic_ = classic;
+        flip_ = 0.0f;
+    }
+    const bool flipping = flip_ < 1.0f;
+    if (flipping) {
+        flip_ = std::min(1.0f, flip_ + dt / FLIP_SECONDS);
+        BeginTextureMode(hd_canvas_);
+        ClearBackground(BLACK);
+        draw_hd(ram, dt);
+        EndTextureMode();
+    }
+
     BeginTextureMode(canvas_);
     ClearBackground(BLACK);
-    if (classic) {
+    if (flipping) {
+        draw_flip();
+    } else if (classic) {
         // Untouched CGA output at 4:3, for comparison.
-        DrawTexturePro(vram_tex_, {0, 0, 320, 200}, {240, 0, 1440, 1080}, {0, 0}, 0, WHITE);
+        DrawTexturePro(vram_tex_, {0, 0, 320, 200}, CLASSIC_RECT, {0, 0}, 0, WHITE);
     } else {
-        // The field is opaque, but translucent effects drawn into its render texture
-        // lowered its stored alpha (alpha is blended like colour); draw it back opaque.
-        BeginShaderMode(opaque_);
-        if (transition_ < 1.0f) {
-            float e = smoothstep(transition_);
-            if (dir_x_ || dir_y_) {
-                Vector2 out{-dir_x_ * e * CANVAS_W, -dir_y_ * e * FIELD_PX_H};
-                Vector2 in{dir_x_ * (1 - e) * CANVAS_W, dir_y_ * (1 - e) * FIELD_PX_H};
-                DrawTextureRec(prev_field_.texture, flipped(prev_field_), out, WHITE);
-                DrawTextureRec(field_.texture, flipped(field_), in, WHITE);
-            } else {
-                DrawTextureRec(prev_field_.texture, flipped(prev_field_), {0, 0}, WHITE);
-                DrawTextureRec(field_.texture, flipped(field_), {0, 0}, Fade(WHITE, e));
-            }
-        } else {
-            DrawTextureRec(field_.texture, flipped(field_), {0, 0}, WHITE);
-        }
-        EndShaderMode();
-        if (classic_hud) {
-            draw_hud();
-        } else {
-            Hud::Icons icons{sprite_texture(LIFE_ICON), {}};
-            for (int i = 0; i < 4; i++) icons.weapons[i] = sprite_texture(WEAPON_ICONS[i]);
-            HudState hs = GameData::hud(ram);
-            hs.infinite_lives = infinite_lives;
-            hud_->draw(hs, icons,
-                       {0, float(FIELD_PX_H), float(CANVAS_W), float(CANVAS_H - FIELD_PX_H)}, dt);
-        }
+        draw_hd(ram, dt);
     }
 
     if (paused) {
@@ -336,6 +333,77 @@ void Renderer::draw_background(int room, int palette) {
     };
     hills(330, 60, 0.0021f, room * 1.3f, {92, 140, 150, 255});
     hills(230, 45, 0.0037f, room * 2.1f + 1.0f, {52, 104, 92, 255});
+}
+
+void Renderer::draw_hd(const uint8_t* ram, float dt) {
+    // The field is opaque, but translucent effects drawn into its render texture
+    // lowered its stored alpha (alpha is blended like colour); draw it back opaque.
+    BeginShaderMode(opaque_);
+    if (transition_ < 1.0f) {
+        float e = smoothstep(transition_);
+        if (dir_x_ || dir_y_) {
+            Vector2 out{-dir_x_ * e * CANVAS_W, -dir_y_ * e * FIELD_PX_H};
+            Vector2 in{dir_x_ * (1 - e) * CANVAS_W, dir_y_ * (1 - e) * FIELD_PX_H};
+            DrawTextureRec(prev_field_.texture, flipped(prev_field_), out, WHITE);
+            DrawTextureRec(field_.texture, flipped(field_), in, WHITE);
+        } else {
+            DrawTextureRec(prev_field_.texture, flipped(prev_field_), {0, 0}, WHITE);
+            DrawTextureRec(field_.texture, flipped(field_), {0, 0}, Fade(WHITE, e));
+        }
+    } else {
+        DrawTextureRec(field_.texture, flipped(field_), {0, 0}, WHITE);
+    }
+    EndShaderMode();
+    if (classic_hud) {
+        draw_hud();
+    } else {
+        Hud::Icons icons{sprite_texture(LIFE_ICON), {}};
+        for (int i = 0; i < 4; i++) icons.weapons[i] = sprite_texture(WEAPON_ICONS[i]);
+        HudState hs = GameData::hud(ram);
+        hs.infinite_lives = infinite_lives;
+        hud_->draw(hs, icons,
+                   {0, float(FIELD_PX_H), float(CANVAS_W), float(CANVAS_H - FIELD_PX_H)}, dt);
+    }
+}
+
+void Renderer::draw_blocky(const Texture2D& tex, Rectangle src, Rectangle dst, float block, float alpha) {
+    // Shrink the picture to one texel per block (bilinear: a rough average), then blow it up
+    // with point sampling. Both steps go through blocks_; its texels are stored upside down.
+    int nx = std::max(1, int(dst.width / block)), ny = std::max(1, int(dst.height / block));
+    EndTextureMode();
+    BeginTextureMode(blocks_);
+    ClearBackground(BLACK);
+    DrawTexturePro(tex, src, {0, 0, float(nx), float(ny)}, {0, 0}, 0, WHITE);
+    EndTextureMode();
+    BeginTextureMode(canvas_);
+    DrawTexturePro(blocks_.texture, {0, float(CANVAS_H - ny), float(nx), float(-ny)}, dst, {0, 0}, 0,
+                   Fade(WHITE, alpha));
+}
+
+void Renderer::draw_flip() {
+    // The old view breaks up into ever bigger pixels, up to one block per original tile;
+    // the new one comes out of them, its pixels shrinking back to full detail. Meanwhile the
+    // screen eases between the remaster's 16:9 layout and the original's 4:3.
+    const float e = smoothstep(flip_);
+    const float k = flip_to_classic_ ? e : 1 - e;  // 0 = remaster layout, 1 = classic layout
+    const Rectangle dst{CLASSIC_RECT.x * k, 0, CANVAS_W + (CLASSIC_RECT.width - CANVAS_W) * k, float(CANVAS_H)};
+    const float peak = 1 - std::fabs(2 * flip_ - 1);  // 0 at both ends, 1 in the middle
+    const float block = std::max(1.0f, FLIP_MAX_BLOCK * peak * peak);
+    const Rectangle hd_src{0, float(CANVAS_H), float(CANVAS_W), -float(CANVAS_H)};
+    const Rectangle cga_src{0, 0, 320, 200};
+    // which picture: the old one, then the new one, cross-fading around the middle
+    const float mix = std::clamp((flip_ - 0.4f) / 0.2f, 0.0f, 1.0f);
+    auto draw_view = [&](bool cga, float alpha) {
+        if (alpha <= 0) return;
+        const float native = cga ? dst.width / 320 : 1.0f;  // a CGA pixel is already this big
+        if (block <= native)
+            DrawTexturePro(cga ? vram_tex_ : hd_canvas_.texture, cga ? cga_src : hd_src, dst, {0, 0}, 0,
+                           Fade(WHITE, alpha));
+        else
+            draw_blocky(cga ? vram_tex_ : hd_canvas_.texture, cga ? cga_src : hd_src, dst, block, alpha);
+    };
+    draw_view(!flip_to_classic_, 1.0f);        // the old view
+    draw_view(flip_to_classic_, mix);          // the new one fades in over it
 }
 
 void Renderer::draw_field(const uint8_t* ram, const std::vector<ObjectView>& objects, RenderTexture2D& target) {
