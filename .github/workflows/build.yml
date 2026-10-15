@@ -1,5 +1,6 @@
-# Windows and Linux builds. Every push to main (or a ci/* branch) leaves the archives as
-# workflow artifacts; a v* tag also attaches them to a GitHub release.
+# Windows and Linux builds, run for a v* tag (the archives go to its GitHub release) or by
+# hand from the Actions tab (Run workflow: archives as workflow artifacts). Plain pushes
+# don't build.
 #   Windows: MSYS2 (UCRT64) with raylib and unicorn from pacman, their DLLs next to the exe.
 #   Linux:   raylib (static) and unicorn (shared, shipped next to the binary) built from source
 #            on the oldest supported Ubuntu, so the binary runs on older glibc too.
@@ -7,7 +8,6 @@ name: build
 
 on:
   push:
-    branches: [main, 'ci/**']
     tags: ['v*']
   workflow_dispatch:
 
