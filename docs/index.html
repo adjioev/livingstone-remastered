@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opera Soft Remastered</title>
+<meta name="description" content="A fan-made HD remaster of the classic Opera Soft DOS games Livingstone Supongo and The Last Mission. Free, open source; bring your own copy of the original games.">
+<meta property="og:title" content="Opera Soft Remastered">
+<meta property="og:description" content="Livingstone Supongo and The Last Mission, repainted in HD. A free fan project.">
+<meta property="og:image" content="img/hero-lm.webp">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2310131c'/%3E%3Crect x='3' y='3' width='10' height='10' fill='%23ec50dc'/%3E%3Crect x='6' y='6' width='4' height='4' fill='%235ae6ff'/%3E%3C/svg%3E">
+<style>
+@font-face { font-family: Anton; src: url(fonts/Anton-Regular.ttf); font-display: swap; }
+:root {
+  --bg: #0c0e16; --panel: #151a28; --line: #262e44; --ink: #dfe7f3; --dim: #8c99b3;
+  --cyan: #5ae6ff; --magenta: #ec50dc; --gold: #ffd25e;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--cyan); }
+img { max-width: 100%; display: block; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+h1, h2, h3, .brand, .btn { font-family: Anton, Impact, sans-serif; letter-spacing: .02em; font-weight: normal; }
+[lang="es"] .en, [lang="en"] .es { display: none; }
+
+header.top { position: sticky; top: 0; z-index: 5; background: rgba(12,14,22,.88); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; gap: 20px; height: 60px; }
+.brand { font-size: 22px; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.brand b { color: var(--magenta); font-weight: normal; }
+nav { display: flex; gap: 18px; margin-left: auto; }
+nav a { color: var(--dim); text-decoration: none; font-size: 15px; }
+nav a:hover { color: var(--ink); }
+.langs { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.langs button { background: none; border: 0; color: var(--dim); padding: 4px 10px; font: 600 13px system-ui, sans-serif; cursor: pointer; }
+.langs button[aria-pressed="true"] { background: var(--magenta); color: #fff; }
+@media (max-width: 720px) { nav { display: none; } .langs { margin-left: auto; } }
+
+.hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
+.hero .shots { display: grid; grid-template-columns: 1fr 1fr; }
+.hero .shots img { width: 100%; aspect-ratio: 2/1; object-fit: cover; object-position: top; opacity: .55; }
+.hero .text { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 16px;
+  background: radial-gradient(ellipse at center, rgba(12,14,22,.55), rgba(12,14,22,.9)); }
+.hero h1 { font-size: clamp(40px, 8vw, 96px); line-height: 1; margin: 0; text-shadow: 0 4px 0 #000; }
+.hero h1 b { color: var(--magenta); font-weight: normal; }
+.hero p { max-width: 640px; color: var(--ink); font-size: clamp(16px, 2.2vw, 20px); margin: 18px 0 26px; }
+@media (max-width: 720px) { .hero .shots { grid-template-columns: 1fr; } .hero .shots img:last-child { display: none; } .hero .shots img { aspect-ratio: 3/4; } }
+
+.btn { display: inline-flex; align-items: center; gap: 10px; background: var(--magenta); color: #fff; text-decoration: none; padding: 12px 26px; border-radius: 8px; font-size: 22px; box-shadow: 0 4px 0 #8a2482; }
+.btn.alt { background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 0 #05060a; }
+.btn small { font: 500 13px system-ui, sans-serif; opacity: .85; }
+.btns { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+
+section { padding: 64px 0; border-bottom: 1px solid var(--line); }
+section h2 { font-size: clamp(30px, 5vw, 44px); margin: 0 0 8px; }
+section .lead { color: var(--dim); margin: 0 0 32px; max-width: 760px; }
+
+.game { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; align-items: start; margin-bottom: 64px; }
+.game:last-child { margin-bottom: 0; }
+.game h3 { font-size: 34px; margin: 0; }
+.game .year { color: var(--gold); font: 600 14px system-ui, sans-serif; text-transform: uppercase; letter-spacing: .1em; }
+.game ul { padding-left: 20px; color: var(--dim); }
+.game ul li { margin: 4px 0; }
+@media (max-width: 860px) { .game { grid-template-columns: 1fr; } }
+
+.compare { position: relative; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #000; user-select: none; touch-action: pan-y; cursor: ew-resize; }
+.compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.compare .over { clip-path: inset(0 0 0 var(--cut, 50%)); }
+.compare .bar { position: absolute; top: 0; bottom: 0; left: var(--cut, 50%); width: 3px; margin-left: -1px; background: #fff; box-shadow: 0 0 12px var(--cyan); }
+.compare .bar::after { content: "\2194"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 38px; height: 38px; border-radius: 50%; background: #fff; color: #000; display: grid; place-items: center; font-size: 20px; }
+.compare .tag { position: absolute; top: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,.7); font: 600 12px system-ui, sans-serif; letter-spacing: .08em; }
+.compare .tag.l { left: 10px; } .compare .tag.r { right: 10px; color: var(--cyan); }
+.thumbs { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.thumbs button { padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden; width: 92px; cursor: pointer; background: none; opacity: .6; }
+.thumbs button[aria-pressed="true"] { border-color: var(--magenta); opacity: 1; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 22px; }
+.card h3 { font-size: 24px; margin: 0 0 8px; }
+.card p, .card li { color: var(--dim); margin: 6px 0; }
+.card code { color: var(--ink); background: #0a0c12; padding: 1px 6px; border-radius: 4px; font-size: 14px; }
+.step { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--magenta); color: #fff; font-family: Anton, sans-serif; font-size: 18px; margin-bottom: 10px; }
+
+table.keys { width: 100%; border-collapse: collapse; }
+table.keys td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.keys td:first-child { white-space: nowrap; width: 40%; }
+kbd { display: inline-block; min-width: 26px; text-align: center; padding: 1px 7px; border: 1px solid #3a4560; border-bottom-width: 3px; border-radius: 5px; background: #0a0c12; font: 600 13px system-ui, sans-serif; color: var(--ink); }
+
+.beta { display: inline-block; vertical-align: middle; font: 700 12px system-ui, sans-serif; letter-spacing: .12em; color: #10131c; background: var(--gold); padding: 3px 8px; border-radius: 4px; margin-left: 8px; }
+.hero .beta { font-size: clamp(13px, 1.6vw, 18px); padding: 4px 12px; margin: 14px 0 0; }
+.about { display: grid; grid-template-columns: 1fr; max-width: 760px; }
+.about p { color: var(--dim); margin: 0 0 14px; }
+.about .sign { color: var(--ink); font-style: italic; }
+.soon { display: inline-block; font: 700 12px system-ui, sans-serif; letter-spacing: .12em; color: #fff; background: var(--magenta); padding: 3px 8px; border-radius: 4px; vertical-align: middle; }
+.note { border-left: 4px solid var(--gold); background: var(--panel); padding: 16px 20px; border-radius: 0 10px 10px 0; color: var(--dim); }
+.note strong { color: var(--ink); }
+footer { padding: 40px 0 60px; color: var(--dim); font-size: 14px; }
+footer p { margin: 6px 0; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#">OPERA SOFT <b>REMASTERED</b></a><span class="beta">BETA</span>
+    <nav>
+      <a href="#games"><span class="en">Games</span><span class="es">Juegos</span></a>
+      <a href="#download"><span class="en">Download</span><span class="es">Descargar</span></a>
+      <a href="#play"><span class="en">How to play</span><span class="es">Cómo jugar</span></a>
+      <a href="#keys"><span class="en">Controls</span><span class="es">Controles</span></a>
+      <a href="#about"><span class="en">About</span><span class="es">El proyecto</span></a>
+      <a href="https://github.com/adjioev/operasoft-remastered">GitHub</a>
+    </nav>
+    <div class="langs" role="group" aria-label="Language">
+      <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-set-lang="es" aria-pressed="false">ES</button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="shots">
+    <img src="img/hero-ls.webp" alt="">
+    <img src="img/hero-lm.webp" alt="">
+  </div>
+  <div class="text">
+    <h1>OPERA SOFT <b>REMASTERED</b></h1>
+    <span class="beta"><span class="en">BETA · WORK IN PROGRESS</span><span class="es">BETA · EN DESARROLLO</span></span>
+    <p>
+      <span class="en"><em>Livingstone Supongo</em> and <em>The Last Mission</em>, with new HD artwork and the original gameplay. Play <em>Livingstone</em> now, or take a look at <em>The Last Mission</em>, coming in the next update.</span>
+      <span class="es"><em>Livingstone Supongo</em> y <em>The Last Mission</em>, con nuevos gráficos en HD y la jugabilidad original. Ya puedes jugar a <em>Livingstone</em> y ver un adelanto de <em>The Last Mission</em>, que llegará en la próxima actualización.</span>
+    </p>
+    <div class="btns">
+      <a class="btn" href="#download"><span class="en">Download</span><span class="es">Descargar</span> <small>Windows · Linux</small></a>
+      <a class="btn alt" href="#games"><span class="en">See the games</span><span class="es">Ver los juegos</span></a>
+    </div>
+  </div>
+</div>
+
+<section id="games">
+  <div class="wrap">
+    <h2><span class="en">The games</span><span class="es">Los juegos</span></h2>
+    <p class="lead">
+      <span class="en">Drag the slider to compare the original with the remaster.</span>
+      <span class="es">Arrastra el control para comparar el original con la remasterización.</span>
+    </p>
+
+    <div class="game">
+      <div>
+        <div class="compare" data-set="ls">
+          <img class="under" alt="Livingstone Supongo, original CGA graphics">
+          <img class="over" alt="Livingstone Supongo, remastered">
+          <span class="tag l"><span class="en">ORIGINAL</span><span class="es">ORIGINAL</span></span>
+          <span class="tag r">HD</span>
+          <span class="bar"></span>
+        </div>
+        <div class="thumbs" data-for="ls"></div>
+      </div>
+      <div>
+        <div class="year">Opera Soft · 1986</div>
+        <h3>Livingstone Supongo</h3>
+        <p class="en">Help Stanley find Dr. Livingstone as you explore the jungle, mines and a lost temple. You have a boomerang, a knife, grenades and a pole to vault over obstacles. Working out when to use each one is half the fun.</p>
+        <p class="es">Ayuda a Stanley a encontrar al Dr. Livingstone mientras exploras la selva, las minas y un templo perdido. Llevas un bumerán, un cuchillo, granadas y una pértiga para superar obstáculos. Parte de la gracia está en descubrir cuándo usar cada uno.</p>
+        <ul class="en">
+          <li>New HD artwork for every screen, with animation and lighting effects</li>
+          <li>HD sprites with smooth movement</li>
+          <li>Redesigned HUD, gamepad support and the original sound</li>
+        </ul>
+        <ul class="es">
+          <li>Todas las pantallas redibujadas en HD, con detalles animados y efectos de luz</li>
+          <li>Sprites en HD con movimiento suave</li>
+          <li>Marcador rediseñado, compatibilidad con mando y sonido original</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="game">
+      <div>
+        <div class="compare" data-set="lm">
+          <img class="under" alt="The Last Mission, original CGA graphics">
+          <img class="over" alt="The Last Mission, remastered">
+          <span class="tag l"><span class="en">ORIGINAL</span><span class="es">ORIGINAL</span></span>
+          <span class="tag r">HD</span>
+          <span class="bar"></span>
+        </div>
+        <div class="thumbs" data-for="lm"></div>
+      </div>
+      <div>
+        <div class="year">Opera Soft · 1987</div>
+        <h3>The Last Mission <span class="soon"><span class="en">COMING SOON</span><span class="es">MUY PRONTO</span></span></h3>
+        <p class="en">Escape an alien base in a robot with a flying turret. Detach the turret from its tracked base and fly on ahead. There are 91 screens between you and the planet's surface.</p>
+        <p class="es">Escapa de una base alienígena a los mandos de un robot con una torreta voladora. Separa la torreta de la base con orugas y sigue avanzando por el aire. Te esperan 91 pantallas hasta llegar a la superficie del planeta.</p>
+        <ul class="en">
+          <li>New artwork for all 91 screens, with backgrounds for each area</li>
+          <li>Lamps that cast light, flowing liquid, crackling electricity</li>
+          <li>HD enemies, glowing lasers, explosions and smooth screen transitions</li>
+        </ul>
+        <p class="en" style="color:var(--ink)">I'm finishing this one for the next release.</p>
+        <ul class="es">
+          <li>Nuevos gráficos para las 91 pantallas, con fondos propios para cada zona</li>
+          <li>Lámparas que iluminan, líquido que fluye, electricidad que chisporrotea</li>
+          <li>Enemigos en HD, destellos de láser, explosiones y transiciones suaves entre pantallas</li>
+        </ul>
+        <p class="es" style="color:var(--ink)">Estoy terminando los últimos detalles para la próxima versión.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <h2><span class="en">Download</span><span class="es">Descargar</span></h2>
+    <p class="lead">
+      <span class="en">The remaster is free. This version supports <em>Livingstone Supongo</em>; support for <em>The Last Mission</em> is coming in the next update. You’ll need your own copy of the original game to play.</span>
+      <span class="es">La remasterización es gratuita. Esta versión permite jugar a <em>Livingstone Supongo</em>; <em>The Last Mission</em> llegará en la próxima actualización. Necesitarás tu propia copia del juego original.</span>
+    </p>
+    <div class="note" style="margin-bottom:24px">
+      <strong><span class="en">This is a beta.</span><span class="es">Esto es una beta.</span></strong>
+      <span class="en">You can play now, though I’m still fixing bugs and working on the artwork. If something goes wrong, please <a href="https://github.com/adjioev/operasoft-remastered/issues">report it on GitHub</a>.</span>
+      <span class="es">Ya se puede jugar, aunque sigo corrigiendo errores y retocando los gráficos. Si algo falla, puedes <a href="https://github.com/adjioev/operasoft-remastered/issues">avisarme en GitHub</a>.</span>
+    </div>
+    <div class="btns" style="justify-content:flex-start">
+      <a class="btn" data-goatcounter-click="download-windows" data-goatcounter-title="Download Windows" href="https://github.com/adjioev/operasoft-remastered/releases/latest/download/LivingstoneRemastered-windows.zip">Windows <small>64-bit · zip</small></a>
+      <a class="btn" data-goatcounter-click="download-linux" data-goatcounter-title="Download Linux" href="https://github.com/adjioev/operasoft-remastered/releases/latest/download/LivingstoneRemastered-linux-x86_64.tar.gz">Linux <small>x86-64 · tar.gz</small></a>
+      <a class="btn alt" href="https://github.com/adjioev/operasoft-remastered/releases"><span class="en">All releases</span><span class="es">Todas las versiones</span></a>
+    </div>
+    <p style="color:var(--dim);margin-top:22px">
+      <span class="en">A macOS download is planned. Windows may warn about an unknown publisher (the program is not signed): choose <em>More info → Run anyway</em>.</span>
+      <span class="es">También habrá una versión para macOS. Windows puede avisar de un editor desconocido (el programa no está firmado): elige <em>Más información → Ejecutar de todas formas</em>.</span>
+    </p>
+  </div>
+</section>
+
+<section id="play">
+  <div class="wrap">
+    <h2><span class="en">How to play</span><span class="es">Cómo jugar</span></h2>
+    <div class="note" style="margin-bottom:28px">
+      <strong><span class="en">The original games are not included.</span><span class="es">Los juegos originales no están incluidos.</span></strong>
+      <span class="en">You’ll need the DOS game file listed below. The remaster checks that it’s the right version and leaves your file unchanged.</span>
+      <span class="es">Necesitarás el archivo de la versión para DOS que se indica abajo. La remasterización comprueba que sea la versión correcta y no modifica tu archivo.</span>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="step">1</div>
+        <h3><span class="en">Unpack and run</span><span class="es">Descomprime y ejecuta</span></h3>
+        <p class="en">Extract the downloaded archive and run <code>Livingstone.exe</code> (Windows) or <code>./livingstone</code> (Linux).</p>
+        <p class="es">Descomprime el archivo descargado y ejecuta <code>Livingstone.exe</code> (Windows) o <code>./livingstone</code> (Linux).</p>
+      </div>
+      <div class="card">
+        <div class="step">2</div>
+        <h3><span class="en">Drop in your game</span><span class="es">Arrastra tu juego</span></h3>
+        <p class="en">Drag your original game file onto the window. You only need to do this the first time:</p>
+        <p class="es">Arrastra el archivo del juego original a la ventana. Solo tendrás que hacerlo la primera vez:</p>
+        <ul>
+          <li><em>Livingstone Supongo</em>: <code>LSTONE.COM</code></li>
+          <li><em>The Last Mission</em>: <code>LMISION.OVL</code> <span class="soon"><span class="en">SOON</span><span class="es">PRONTO</span></span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="step">3</div>
+        <h3><span class="en">Play</span><span class="es">Juega</span></h3>
+        <p class="en">Press <kbd>Space</kbd> on the title screen. <kbd>Esc</kbd> pauses; <kbd>R</kbd> flips between the original and the HD graphics at any time.</p>
+        <p class="es">Pulsa <kbd>Espacio</kbd> en la pantalla de título. <kbd>Esc</kbd> pausa; <kbd>R</kbd> cambia entre los gráficos originales y los HD en cualquier momento.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="keys">
+  <div class="wrap">
+    <h2><span class="en">Controls</span><span class="es">Controles</span></h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Livingstone Supongo</h3>
+        <table class="keys">
+          <tr><td><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></td><td><span class="en">move, jump and crouch; press K to switch between QAOP and WASD</span><span class="es">mover, saltar y agacharse; pulsa K para alternar entre QAOP y WASD</span></td></tr>
+          <tr><td><kbd>1</kbd>–<kbd>4</kbd></td><td><span class="en">boomerang, knife, grenade, pole</span><span class="es">bumerán, cuchillo, granada, pértiga</span></td></tr>
+          <tr><td><kbd>Space</kbd></td><td><span class="en">fire; hold to charge a throw or a vault</span><span class="es">disparar; mantén pulsado para cargar un lanzamiento o un salto con pértiga</span></td></tr>
+          <tr><td><kbd>V</kbd></td><td><span class="en">effects on / off</span><span class="es">activar / desactivar efectos</span></td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>The Last Mission <span class="soon"><span class="en">SOON</span><span class="es">PRONTO</span></span></h3>
+        <table class="keys">
+          <tr><td><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></td><td><span class="en">move (also QAOP)</span><span class="es">mover (también QAOP)</span></td></tr>
+          <tr><td><kbd>Space</kbd></td><td><span class="en">fire the laser</span><span class="es">disparar el láser</span></td></tr>
+          <tr><td><kbd>G</kbd></td><td><span class="en">light effects on / off</span><span class="es">activar / desactivar efectos de luz</span></td></tr>
+          <tr><td><kbd>Enter</kbd></td><td><span class="en">start from the title screen</span><span class="es">empezar desde la pantalla de título</span></td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3><span class="en">Both games</span><span class="es">Ambos juegos</span></h3>
+        <table class="keys">
+          <tr><td><kbd>Esc</kbd></td><td><span class="en">pause: N new game, T teleport to a screen, X quit</span><span class="es">pausa: N partida nueva, T teletransporte a una pantalla, X salir</span></td></tr>
+          <tr><td><kbd>R</kbd></td><td><span class="en">original / HD graphics</span><span class="es">gráficos originales / HD</span></td></tr>
+          <tr><td><kbd>M</kbd></td><td><span class="en">sound on / off</span><span class="es">activar / desactivar sonido</span></td></tr>
+          <tr><td><kbd>F</kbd></td><td><span class="en">full screen</span><span class="es">pantalla completa</span></td></tr>
+          <tr><td><kbd>L</kbd></td><td><span class="en">infinite lives</span><span class="es">vidas infinitas</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="wrap about">
+    <h2><span class="en">About the project</span><span class="es">Sobre el proyecto</span></h2>
+    <p class="en">I'm Alex, and I live in Australia. I spent hours playing Opera Soft games as a kid. <em>Livingstone Supongo</em> and <em>The Last Mission</em> were two of my favourites.</p>
+    <p class="es">Soy Alex y vivo en Australia. De pequeño pasaba horas jugando a los juegos de Opera Soft. <em>Livingstone Supongo</em> y <em>The Last Mission</em> eran dos de mis favoritos.</p>
+    <p class="en">I wanted to give them new graphics while keeping the games I remembered. The remaster runs the original DOS game and draws new artwork over it, so the movement, enemies and puzzles still come from the original. Press <kbd>R</kbd> while playing to switch between the two.</p>
+    <p class="es">Quería renovar los gráficos y conservar los juegos tal como los recordaba. La remasterización ejecuta el juego original de DOS y dibuja los nuevos gráficos encima. Los movimientos, los enemigos y los puzles siguen siendo los del original. Pulsa <kbd>R</kbd> mientras juegas para cambiar entre ambas versiones.</p>
+    <p class="en">I also wanted to play these games with my kids and show them what I grew up with. That’s a big part of why I’m making this.</p>
+    <p class="es">También quería jugar con mis hijos y enseñarles los juegos con los que crecí. Esa es una de las principales razones por las que estoy haciendo este proyecto.</p>
+    <p class="sign">- Alex</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="en">Thank you, Opera Soft</span><span class="es">Gracias, Opera Soft</span></h2>
+    <p class="lead" style="margin-bottom:0">
+      <span class="en">Thank you to the programmers, artists and musicians at Opera Soft who made these games. I’ve enjoyed returning to them all these years later, and I hope you will too.</span>
+      <span class="es">Gracias a los programadores, grafistas y músicos de Opera Soft que crearon estos juegos. He disfrutado volviendo a ellos tantos años después. Espero que vosotros también.</span>
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      <span class="en">A free, non-commercial fan project, not affiliated with or endorsed by Opera Soft or the rights holders. <em>Livingstone Supongo</em> and <em>The Last Mission</em> are © Opera Soft.</span>
+      <span class="es">Un proyecto de aficionados, gratuito y sin ánimo de lucro, sin relación con Opera Soft ni con los titulares de los derechos. <em>Livingstone Supongo</em> y <em>The Last Mission</em> son © Opera Soft.</span>
+    </p>
+    <p>
+      <span class="en">Code under the GPL-2.0 license; the new art is for personal, non-commercial use.</span>
+      <span class="es">Código bajo licencia GPL-2.0; el nuevo arte es para uso personal y no comercial.</span>
+      <a href="https://github.com/adjioev/operasoft-remastered">GitHub</a>
+    </p>
+  </div>
+</footer>
+
+<script>
+// language: saved choice, else the browser's
+(function () {
+  var saved = null;
+  try { saved = localStorage.getItem('lang'); } catch (e) {}
+  var lang = saved || ((navigator.language || 'en').toLowerCase().indexOf('es') === 0 ? 'es' : 'en');
+  function set(l) {
+    document.documentElement.lang = l;
+    document.querySelectorAll('[data-set-lang]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.setLang === l); });
+  }
+  document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      set(b.dataset.setLang);
+      try { localStorage.setItem('lang', b.dataset.setLang); } catch (e) {}
+    });
+  });
+  set(lang);
+})();
+
+// before / after sliders with a row of screens under each
+var SETS = { ls: 4, lm: 5 };
+document.querySelectorAll('.compare').forEach(function (box) {
+  var set = box.dataset.set, under = box.querySelector('.under'), over = box.querySelector('.over');
+  var thumbs = document.querySelector('.thumbs[data-for="' + set + '"]');
+  function show(i) {
+    under.src = 'img/' + set + '-og-' + i + '.webp';
+    over.src = 'img/' + set + '-hd-' + i + '.webp';
+    thumbs.querySelectorAll('button').forEach(function (b, k) { b.setAttribute('aria-pressed', k + 1 === i); });
+  }
+  for (var i = 1; i <= SETS[set]; i++) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = '<img src="img/' + set + '-hd-' + i + '.webp" alt="" loading="lazy">';
+    b.addEventListener('click', show.bind(null, i));
+    thumbs.appendChild(b);
+  }
+  show(1);
+  function move(e) {
+    var r = box.getBoundingClientRect();
+    var x = Math.max(0, Math.min(1, ((e.touches ? e.touches[0].clientX : e.clientX) - r.left) / r.width));
+    box.style.setProperty('--cut', (x * 100) + '%');
+  }
+  var down = false;
+  box.addEventListener('pointerdown', function (e) { down = true; move(e); });
+  window.addEventListener('pointerup', function () { down = false; });
+  box.addEventListener('pointermove', function (e) { if (down || e.pointerType === 'mouse') move(e); });
+});
+</script>
+<!-- visits counted by GoatCounter: no cookies, no personal data -->
+<script data-goatcounter="https://adjioev.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
